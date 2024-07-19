@@ -1,10 +1,6 @@
 
-#include <chrono>
-#include <iostream>
 #include <memory>
 #include <span>
-#include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -24,8 +20,6 @@ using namespace ctre::phoenix;
 using namespace ctre::phoenix::platform;
 using namespace ctre::phoenix::motorcontrol;
 using namespace ctre::phoenix::motorcontrol::can;
-
-using namespace std::chrono_literals;
 
 class Robot : public rclcpp::Node
 {
@@ -60,13 +54,20 @@ private:
 
 int main(int argc, char ** argv)
 {
-    auto interface = "can0";
+    // Init ROS2 for logging capabilities
+    rclcpp::init(argc, argv);
+
+    // Set the can interface for pheonix5
+    const char* interface = "can0";
     if(ctre::phoenix::platform::can::SetCANInterface(interface) != 0)
     {
-        printf("Set Interface failed!");
-        std::exit(-1);
+
+        RCLCPP_ERROR(rclcpp::get_logger("robot"),
+                     "Failed to set the CAN interface to %s", interface);
+        std::exit(EXIT_FAILURE);
     }
 
+    // Create the node
     static constexpr std::pair<const char *, int> motors[] = {
         {"track_right", 0},
         {"track_left", 1},
@@ -74,10 +75,11 @@ int main(int argc, char ** argv)
         {"hopper_belt", 3},
         {"hopper_actuator", 4}};
 
-    rclcpp::init(argc, argv);
     auto node = std::make_shared<Robot>(
         std::span{std::begin(motors), std::end(motors)});
+
+    // Run the node
     rclcpp::spin(node);
     rclcpp::shutdown();
-    return 0;
+    return EXIT_SUCCESS;
 }
