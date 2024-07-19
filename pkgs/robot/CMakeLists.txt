@@ -9,12 +9,13 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(common REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(custom_types REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
 add_executable(main src/main.cpp)
-ament_target_dependencies(main rclcpp common)
+ament_target_dependencies(main rclcpp common custom_types)
 target_include_directories(main PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/pheonix5/include>
