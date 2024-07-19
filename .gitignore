@@ -38,3 +38,6 @@ install
 
 # Vscode
 .vscode
+
+# IMGUI
+imgui.ini

@@ -1,13 +1,13 @@
 #include <algorithm>
-#include <iostream>
 #include <cstdlib>
+#include <iostream>
 
 #include <rclcpp/rclcpp.hpp>
 
-#include <SDL2/SDL.h>
 #include "imgui.h"
 #include "imgui_impl_sdl2.h"
 #include "imgui_impl_sdlrenderer2.h"
+#include <SDL2/SDL.h>
 
 #include "mission_ctrl/app.hpp"
 
@@ -42,18 +42,17 @@ int main(int argc, char * argv[])
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    ImGuiIO& io = ImGui::GetIO();
+    ImGuiIO & io = ImGui::GetIO();
     (void)io;
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;     // Enable Docking
+    io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;   // Enable Viewports
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
     // ImGui::StyleColorsLight();
 
-
-
-    
     auto node = std::make_shared<Application>(argc, argv);
     rclcpp::spin(node);
     rclcpp::shutdown();

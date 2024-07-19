@@ -1,8 +1,9 @@
 #ifndef MISSION_CTRL_APP_HPP_6_27_2024
 #define MISSION_CTRL_APP_HPP_6_27_2024
 
-#include <memory>
 #include <array>
+#include <chrono>
+#include <memory>
 
 #include <rclcpp/rclcpp.hpp>
 
@@ -19,8 +20,6 @@ class Application : public rclcpp::Node
 public:
     Application(int argc, char ** argv);
 
-    bool is_running() const;
-
     void update();
 
 private:
@@ -29,13 +28,15 @@ private:
 private:
     const int WIDTH = 1028;
     const int HEIGHT = 940;
-    const 
+    const std::array<uint8_t, 4> reset_color = {255, 255, 255, 255};
+    const std::chrono::milliseconds frame_time = std::chrono::milliseconds(16);
 
 private:
     std::unique_ptr<SDL_Window, SDLWindowDestroyer> window;
     std::unique_ptr<SDL_Renderer, SDLRendererDestroyer> renderer;
-    bool running = true;
-    ImGuiIO& io = ImGui::GetIO();
+
+    ImGuiIO & io = ImGui::GetIO();
+    rclcpp::TimerBase::SharedPtr timer;
 };
 
 #endif

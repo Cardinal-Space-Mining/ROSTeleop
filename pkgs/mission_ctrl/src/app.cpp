@@ -24,13 +24,10 @@ Application::Application(int argc, char ** argv)
     ImGui_ImplSDL2_InitForSDLRenderer(window.get(), renderer.get());
     ImGui_ImplSDLRenderer2_Init(renderer.get());
 
+    timer = this->create_wall_timer(frame_time, [this]() { this->update(); });
+
     RCLCPP_INFO(this->get_logger(), "Node %s fininshed initializing!",
                 this->get_name());
-}
-
-bool Application::is_running() const
-{
-    return this->running;
 }
 
 void Application::handle_event(SDL_Event & e)
@@ -38,16 +35,12 @@ void Application::handle_event(SDL_Event & e)
     // User requests quit
     if(e.type == SDL_QUIT)
     {
-        running = false;
+        rclcpp::shutdown();
     }
 }
 
 void Application::update()
 {
-    if(!running)
-    {
-        return;
-    }
     SDL_Event e;
 
     // Fetch next event or
@@ -75,16 +68,14 @@ void Application::update()
     ImGui::Render();
     SDL_RenderSetScale(renderer.get(), io.DisplayFramebufferScale.x,
                        io.DisplayFramebufferScale.y);
-    SDL_SetRenderDrawColor(renderer.get(), (Uint8)(clear_color.x * 255),
-                           (Uint8)(clear_color.y * 255),
-                           (Uint8)(clear_color.z * 255),
-                           (Uint8)(clear_color.w * 255));
+    SDL_SetRenderDrawColor(renderer.get(), reset_color[0], reset_color[1],
+                           reset_color[2], reset_color[3]);
     SDL_RenderClear(renderer.get());
 
-    // Initialize renderer color white for the background
-    SDL_SetRenderDrawColor(renderer.get(), 0xFF, 0xFF, 0xFF, 0xFF);
-
     // App Update
+
+    ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData(), renderer.get());
+    SDL_RenderPresent(renderer.get());
 
     // Update screen
     SDL_RenderPresent(renderer.get());
