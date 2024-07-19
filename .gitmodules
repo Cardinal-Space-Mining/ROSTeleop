@@ -1,0 +1,4 @@
+[submodule "pkgs/mission_ctrl/libs/imgui"]
+	path = pkgs/mission_ctrl/libs/imgui
+	url = https://github.com/ocornut/imgui.git
+	branch = docking

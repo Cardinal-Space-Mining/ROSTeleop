@@ -1,7 +1,7 @@
 #ifndef MISSION_CTRL_SDL_UTILS_HPP_6_27_2024
 #define MISSION_CTRL_SDL_UTILS_HPP_6_27_2024
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 
 struct SDLWindowDestroyer
 {

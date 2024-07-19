@@ -5,6 +5,9 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <SDL2/SDL.h>
+#include "imgui.h"
+#include "imgui_impl_sdl2.h"
+#include "imgui_impl_sdlrenderer2.h"
 
 #include "mission_ctrl/app.hpp"
 
@@ -13,6 +16,9 @@
 
 int main(int argc, char * argv[])
 {
+    // Load ROS2
+    rclcpp::init(argc, argv);
+
     // Initialize SDL
     if(SDL_Init(SDL_INIT_VIDEO) < 0)
     {
@@ -34,7 +40,20 @@ int main(int argc, char * argv[])
     }
 #endif
 
-    rclcpp::init(argc, argv);
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    // ImGui::StyleColorsLight();
+
+
+
+    
     auto node = std::make_shared<Application>(argc, argv);
     rclcpp::spin(node);
     rclcpp::shutdown();

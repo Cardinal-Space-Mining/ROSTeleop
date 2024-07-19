@@ -9,18 +9,45 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(common REQUIRED)
-find_package(SDL2 REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
+# 1. Look for a SDL2 package, 2. look for the SDL2 component and 3. fail if none can be found
+find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
 
-add_executable(main src/main.cpp src/sdl_utils.cpp src/app.cpp)
+# 1. Look for a SDL2 package, 2. Look for the SDL2maincomponent and 3. DO NOT fail when SDL2main is not available
+find_package(SDL2 REQUIRED CONFIG COMPONENTS SDL2main)
+
+#imgui
+set(IMGUI_SRC_FILES
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/imgui_demo.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/imgui_draw.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/imgui_tables.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/imgui_widgets.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/imgui.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/backends/imgui_impl_sdl2.cpp
+  ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/backends/imgui_impl_sdlrenderer2.cpp
+)
+
+add_executable(main ${IMGUI_SRC_FILES} src/main.cpp src/sdl_utils.cpp src/app.cpp)
+
 ament_target_dependencies(main rclcpp common)
+
 target_include_directories(main PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(main PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-target_link_libraries(main ${SDL2_LIBRARIES})
+
+target_include_directories(main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui)
+target_include_directories(main PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/libs/imgui/backends)
+
+
+target_compile_features(main PUBLIC c_std_99 cxx_std_20)  # Require C99 and C++20
+
+# SDL2::SDL2main may or may not be available. It is e.g. required by Windows GUI applications
+if(TARGET SDL2::SDL2main)
+    # It has an implicit dependency on SDL2 functions, so it MUST be added before SDL2::SDL2 (or SDL2::SDL2-static)
+    target_link_libraries(main SDL2::SDL2main)
+endif()
+
+# Link to the actual SDL2 library. SDL2::SDL2 is the shared SDL library, SDL2::SDL2-static is the static SDL libarary.
+target_link_libraries(main SDL2::SDL2)
 
 install(TARGETS main
   DESTINATION lib/${PROJECT_NAME})
