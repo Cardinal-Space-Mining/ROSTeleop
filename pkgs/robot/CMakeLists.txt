@@ -18,32 +18,28 @@ add_executable(main src/main.cpp)
 ament_target_dependencies(main rclcpp common custom_types)
 target_include_directories(main PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/pheonix5/include>
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/phoenix5/include>
   $<INSTALL_INTERFACE:include>)
 target_compile_features(main PUBLIC c_std_99 cxx_std_20)  # Require C99 and C++20
 
 if (${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "arm-linux-gnueabihf") # Jetson TK1 / Pi
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/raspberry/libCTRE_Phoenix.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/raspberry/libCTRE_PhoenixCCI.a)
-	  target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/raspberry/libCTRE_PhoenixDiagnostics.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/raspberry/libCTRE_PhoenixPlatform_socketcan.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/raspberry/libCTRE_PhoenixCanutils.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/raspberry/libCTRE_PhoenixCore.a)
+    set(PHOENIX_LIBS_DIR ${CMAKE_SOURCE_DIR}/libs/phoenix5/lib/arm32)
 elseif (${CMAKE_LIBRARY_ARCHITECTURE} STREQUAL "aarch64-linux-gnu") # Jetson TX2
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/jetsontx/libCTRE_Phoenix.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/jetsontx/libCTRE_PhoenixCCI.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/jetsontx/libCTRE_PhoenixDiagnostics.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/jetsontx/libCTRE_PhoenixPlatform_socketcan.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/jetsontx/libCTRE_PhoenixCanutils.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/jetsontx/libCTRE_PhoenixCore.a)
+    set(PHOENIX_LIBS_DIR ${CMAKE_SOURCE_DIR}/libs/phoenix5/lib/arm64)
 else()
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/x86-64/libCTRE_Phoenix.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/x86-64/libCTRE_PhoenixCCI.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/x86-64/libCTRE_PhoenixDiagnostics.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/x86-64/libCTRE_PhoenixPlatform_socketcan.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/x86-64/libCTRE_PhoenixCanutils.a)
-    target_link_libraries(main ${CMAKE_SOURCE_DIR}/libs/pheonix5/bin/x86-64/libCTRE_PhoenixCore.a)
+    set(PHOENIX_LIBS_DIR ${CMAKE_SOURCE_DIR}/libs/phoenix5/lib/x86-64)
 endif()
+
+target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_Phoenix.so)
+target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixCCI.so)
+target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixTools.so)
+
+install(FILES 
+  ${PHOENIX_LIBS_DIR}/libCTRE_Phoenix.so
+  ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixCCI.so
+  ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixTools.so
+  DESTINATION lib/${PROJECT_NAME}
+)
 
 install(TARGETS main
   DESTINATION lib/${PROJECT_NAME})

@@ -11,7 +11,7 @@
 #define Phoenix_No_WPI // remove WPI dependencies
 #include "ctre/Phoenix.h"
 #include "ctre/phoenix/cci/Unmanaged_CCI.h"
-#include "ctre/phoenix/platform/Platform.h"
+#include "ctre/phoenix/platform/Platform.hpp"
 #include "ctre/phoenix/unmanaged/Unmanaged.h"
 
 #include "custom_types/msg/talon_ctrl.hpp"
@@ -25,13 +25,13 @@ class Robot : public rclcpp::Node
 {
 public:
     template <size_t V>
-    Robot(std::span<const std::pair<const char *, int>, V> motors)
+    Robot(std::span<const std::pair<const char *, int>, V> motors, const std::string& interface)
     : rclcpp::Node("robot")
     {
         for(const auto & motor : motors)
         {
             auto & motor_ref =
-                m_motors.emplace_back(std::make_unique<TalonSRX>(motor.second));
+                m_motors.emplace_back(std::make_unique<TalonSRX>(motor.second, interface));
             m_motor_subs.emplace_back(this->create_subscription<
                                       custom_types::msg::TalonCtrl>(
                 motor.first, 10,
@@ -58,14 +58,7 @@ int main(int argc, char ** argv)
     rclcpp::init(argc, argv);
 
     // Set the can interface for pheonix5
-    const char* interface = "can0";
-    if(ctre::phoenix::platform::can::SetCANInterface(interface) != 0)
-    {
-
-        RCLCPP_ERROR(rclcpp::get_logger("robot"),
-                     "Failed to set the CAN interface to %s", interface);
-        std::exit(EXIT_FAILURE);
-    }
+    std::string interface = "can0";
 
     // Create the node
     static constexpr std::pair<const char *, int> motors[] = {
@@ -76,7 +69,7 @@ int main(int argc, char ** argv)
         {"hopper_actuator", 4}};
 
     auto node = std::make_shared<Robot>(
-        std::span{std::begin(motors), std::end(motors)});
+        std::span{std::begin(motors), std::end(motors)}, interface);
 
     // Run the node
     rclcpp::spin(node);

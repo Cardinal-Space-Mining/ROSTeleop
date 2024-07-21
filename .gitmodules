@@ -2,3 +2,6 @@
 	path = pkgs/mission_ctrl/libs/imgui
 	url = https://github.com/ocornut/imgui.git
 	branch = docking
+[submodule "pkgs/robot/libs/phoenix5"]
+	path = pkgs/robot/libs/phoenix5
+	url = https://github.com/CrossTheRoadElec/Phoenix5-Linux-Example.git
