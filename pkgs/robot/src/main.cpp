@@ -43,6 +43,12 @@ public:
                         msg.value);
                 }));
         }
+
+        for (auto& motor : m_motors)
+        {
+            motor->Set(ctre::phoenix::motorcontrol::ControlMode::PercentOutput, 1.0);
+        }
+        
     }
 
 private:

@@ -14,6 +14,9 @@ find_package(custom_types REQUIRED)
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
 
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
+
 add_executable(main src/main.cpp)
 ament_target_dependencies(main rclcpp common custom_types)
 target_include_directories(main PUBLIC
@@ -30,9 +33,12 @@ else()
     set(PHOENIX_LIBS_DIR ${CMAKE_SOURCE_DIR}/libs/phoenix5/lib/x86-64)
 endif()
 
-target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_Phoenix.so)
-target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixCCI.so)
-target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixTools.so)
+
+ 
+target_link_libraries(main ${PHOENIX_LIBS_DIR}/libCTRE_Phoenix.so ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixCCI.so ${PHOENIX_LIBS_DIR}/libCTRE_PhoenixTools.so)
+
+
+
 
 install(FILES 
   ${PHOENIX_LIBS_DIR}/libCTRE_Phoenix.so
@@ -57,3 +63,6 @@ if(BUILD_TESTING)
 endif()
 
 ament_package()
+
+install(CODE "execute_process(COMMAND patchelf_cmake_build_step.sh \"${CMAKE_INSTALL_PREFIX}\" \"${CMAKE_INSTALL_PREFIX}/libCTRE_PhoenixTools.so\")")
+
