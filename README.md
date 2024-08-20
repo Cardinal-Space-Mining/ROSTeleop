@@ -20,6 +20,7 @@ Build Dependency: [patchelf](https://github.com/NixOS/patchelf) (`sudo apt insta
 * While I have a shell script to bring up the can interface, you can use `udevadm` (see [here](https://forum.linuxfoundation.org/discussion/859554/udev-how-to-set-a-rule-depending-on-the-manufacturer-or-the-serial-number)) and `systemd` (see [here](https://www.pragmaticlinux.com/2021/07/automatically-bring-up-a-socketcan-interface-on-boot/)). In fact, this is the prefered method for robots as the rules will keep devices on the same interface even after replugging or restarting the devices.
 * While I have a script to patch the proper rpath settings in, you can configure cmake to preserve the rpath of a compiled exe, and patch the distributed shared object once so everything works nicely
 * When working with unmanaged Pheonix 5, you need to feed a watchdog using `ctre::phoenix::unmanaged::Unmanaged::FeedEnable` which is poorly documented in the TalonSRX lit.
+* TalonSRX's have [built in potentiometer support](https://www.chiefdelphi.com/t/how-to-connect-a-potentiometer-to-a-talon-srx/341851) so we need not figure that part out!
 
 # Todo 
 1. Use ROS2 Joy Package
