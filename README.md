@@ -15,6 +15,12 @@ Using SDL2 for gamepad input. Using IMGUI for options and stuff
 # Requirements 
 Build Dependency: [patchelf](https://github.com/NixOS/patchelf) (`sudo apt install patchelf`)
 
+# Errata:
+* Pheonix Tuner X works with Pheonix 5. 
+* While I have a shell script to bring up the can interface, you can use `udevadm` (see [here](https://forum.linuxfoundation.org/discussion/859554/udev-how-to-set-a-rule-depending-on-the-manufacturer-or-the-serial-number)) and `systemd` (see [here](https://www.pragmaticlinux.com/2021/07/automatically-bring-up-a-socketcan-interface-on-boot/)). In fact, this is the prefered method for robots as the rules will keep devices on the same interface even after replugging or restarting the devices.
+* While I have a script to patch the proper rpath settings in, you can configure cmake to preserve the rpath of a compiled exe, and patch the distributed shared object once so everything works nicely
+* When working with unmanaged Pheonix 5, you need to feed a watchdog using `ctre::phoenix::unmanaged::Unmanaged::FeedEnable` which is poorly documented in the TalonSRX lit.
+
 # Todo 
 1. Use ROS2 Joy Package
 2. Implement State machine that takes Joy Messages and outputs motor commands
