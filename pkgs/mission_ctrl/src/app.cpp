@@ -1,12 +1,65 @@
 #include "mission_ctrl/app.hpp"
 
+const std::array<std::string, 5> RobotTeleopInterface::motors = {
+    {"track_right", "track_left", "trencher", "hopper_belt",
+     "hopper_actuator"}};
+
+RobotTeleopInterface::RobotTeleopInterface(rclcpp::Node & parent)
+: robot_state(motors.size())
+, joy_sub(parent.create_subscription<sensor_msgs::msg::Joy>(
+      "joy", 10,
+      [this](const sensor_msgs::msg::Joy & joy) { this->joy = joy; }))
+, teleop_update_timer(parent.create_wall_timer(
+      100ms, std::bind(&RobotTeleopInterface::update_motors, this)))
+
+{
+
+    for(size_t i = 0; i < motors.size(); i++)
+    {
+        auto & motor = motors[i];
+        talon_ctrl_pubs.emplace_back(
+            parent.create_publisher<custom_types::msg::TalonCtrl>(
+                motor + "_ctrl", 10));
+        talon_info_subs.emplace_back(
+            parent.create_subscription<custom_types::msg::TalonInfo>(
+                motor + "_info", 10,
+                [this, i](const custom_types::msg::TalonInfo & info)
+                { this->robot_state[i] = info; }));
+    }
+}
+
+void RobotTeleopInterface::update_motors()
+{
+    auto motor_settings =
+        this->teleop_state.update(this->robot_state, this->joy);
+    for(size_t i = 0; i < motor_settings.size(); i++)
+    {
+        talon_ctrl_pubs[i]->publish(motor_settings[i]);
+    }
+}
+
 Application::Application(int argc, char ** argv)
 : rclcpp::Node("mission_ctrl_main")
 , window(SDL_CreateWindow("Basic C++ SDL project", SDL_WINDOWPOS_UNDEFINED,
                           SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT,
                           SDL_WINDOW_SHOWN))
-, renderer(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED)),
-track_right_pub(create_publisher<custom_types::msg::TalonCtrl>("track_right", 10))
+, renderer(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED))
+, track_right_pub(
+      create_publisher<custom_types::msg::TalonCtrl>("track_right", 10))
+, heartbeat(create_publisher<std_msgs::msg::Int32>("heartbeat", 10))
+, heartbeat_timer(this->create_wall_timer(BEAT_TIME,
+                                          [this]()
+                                          {
+                                              if(this->bot_enabled)
+                                              {
+                                                  std_msgs::msg::Int32 msg;
+                                                  msg.data =
+                                                      ENABLE_TIME.count();
+                                                  this->heartbeat->publish(msg);
+                                              }
+                                          }))
+, teleop_interface(*this)
+
 {
     (void)argc;
     (void)argv;
@@ -25,7 +78,8 @@ track_right_pub(create_publisher<custom_types::msg::TalonCtrl>("track_right", 10
     ImGui_ImplSDL2_InitForSDLRenderer(window.get(), renderer.get());
     ImGui_ImplSDLRenderer2_Init(renderer.get());
 
-    timer = this->create_wall_timer(frame_time, [this]() { this->update(); });
+    frame_timer =
+        this->create_wall_timer(frame_time, [this]() { this->update(); });
 
     RCLCPP_INFO(this->get_logger(), "Node %s fininshed initializing!",
                 this->get_name());
@@ -40,7 +94,8 @@ void Application::handle_event(SDL_Event & e)
     }
 }
 
-void Application::update_motors(){
+void Application::update_motors()
+{
     custom_types::msg::TalonCtrl msg;
     msg.mode = msg.PERCENT_OUTPUT;
     msg.value = this->track_right_velo;
@@ -69,6 +124,8 @@ void Application::update()
                                  // append into it.
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                     1000.0f / io.Framerate, io.Framerate);
+
+        ImGui::Checkbox("Enable Robot", &this->bot_enabled);
 
         ImGui::SliderFloat("RightTrack", &this->track_right_velo, -1, 1);
         ImGui::End();

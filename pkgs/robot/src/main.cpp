@@ -7,6 +7,7 @@
 #include <unistd.h>
 
 #include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/int32.hpp>
 
 #define Phoenix_No_WPI // remove WPI dependencies
 #include "ctre/Phoenix.h"
@@ -114,9 +115,9 @@ private:
 public:
     Robot()
     : rclcpp::Node("robot")
-    , timer(this->create_wall_timer(
-          1000ms,
-          []() { ctre::phoenix::unmanaged::Unmanaged::FeedEnable(2000); }))
+    , heartbeat_sub(this->create_subscription<std_msgs::msg::Int32>(
+          "heartbeat", 10, [](const std_msgs::msg::Int32 & msg)
+          { ctre::phoenix::unmanaged::Unmanaged::FeedEnable(msg.data); }))
     , info_timer(this->create_wall_timer(
           100ms, std::bind(&Robot::info_periodic, this)))
     {
@@ -138,11 +139,11 @@ public:
     }
 
 private:
-    std::string m_interface = "can0";
+    const std::string m_interface = "can0";
 
 private:
     std::vector<InstantiatedMotor> m_motors;
-    rclcpp::TimerBase::SharedPtr timer;
+    std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Int32>> heartbeat_sub;
     rclcpp::TimerBase::SharedPtr info_timer;
 
     // Set the can interface for pheonix5
