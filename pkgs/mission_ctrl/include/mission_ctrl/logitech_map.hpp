@@ -17,6 +17,7 @@ constexpr int LOGITECH = 8;
 constexpr int L_STICK = 9;
 constexpr int R_STICK = 10;
 
+constexpr int NUM_BUTTONS = 11;
 
 } // namespace Buttons
 
@@ -31,8 +32,9 @@ constexpr int RIGHTY = 4;
 constexpr int TRIGGERRIGHT = 5;
 
 constexpr int DPAD_R_L = 6;
-constexpr int DPAD_U_D = 6;
+constexpr int DPAD_U_D = 7;
 
+constexpr int NUM_AXES = 8;
 
 } // namespace Axes
 } // namespace LogitechMapping

@@ -1,41 +1,56 @@
 #include "mission_ctrl/app.hpp"
 
-const std::array<std::string, 5> RobotTeleopInterface::motors = {
-    {"track_right", "track_left", "trencher", "hopper_belt",
-     "hopper_actuator"}};
-
 RobotTeleopInterface::RobotTeleopInterface(rclcpp::Node & parent)
-: robot_state(motors.size())
-, joy_sub(parent.create_subscription<sensor_msgs::msg::Joy>(
+: joy_sub(parent.create_subscription<sensor_msgs::msg::Joy>(
       "joy", 10,
       [this](const sensor_msgs::msg::Joy & joy) { this->joy = joy; }))
+
+, right_track_ctrl(talon_ctrl_pub(parent, "right_track_ctrl"))
+, right_track_info(parent.create_subscription<custom_types::msg::TalonInfo>(
+      "right_track_info", 10, [this](const custom_types::msg::TalonInfo & msg)
+      { this->robot_state.track_right = msg; }))
+, left_track_ctrl(talon_ctrl_pub(parent, "left_track_ctrl"))
+, left_track_info(parent.create_subscription<custom_types::msg::TalonInfo>(
+      "left_track_info", 10, [this](const custom_types::msg::TalonInfo & msg)
+      { this->robot_state.track_left = msg; }))
+, trencher_ctrl(talon_ctrl_pub(parent, "trencher_ctrl"))
+, trencher_info(parent.create_subscription<custom_types::msg::TalonInfo>(
+      "trencher_info", 10, [this](const custom_types::msg::TalonInfo & msg)
+      { this->robot_state.trencher = msg; }))
+
+, hopper_belt_ctrl(talon_ctrl_pub(parent, "hopper_belt_ctrl"))
+, hopper_belt_info(parent.create_subscription<custom_types::msg::TalonInfo>(
+      "hopper_belt_info", 10, [this](const custom_types::msg::TalonInfo & msg)
+      { this->robot_state.hopper_belt = msg; }))
+
+, hopper_actuator_ctrl(talon_ctrl_pub(parent, "hopper_actuator_ctrl"))
+, hopper_actuator_info(parent.create_subscription<custom_types::msg::TalonInfo>(
+      "hopper_actuator_info", 10,
+      [this](const custom_types::msg::TalonInfo & msg)
+      { this->robot_state.hopper_actuator = msg; }))
+
 , teleop_update_timer(parent.create_wall_timer(
-      100ms, std::bind(&RobotTeleopInterface::update_motors, this)))
+      100ms, [this](){this->update_motors();}))
 
 {
+}
 
-    for(size_t i = 0; i < motors.size(); i++)
-    {
-        auto & motor = motors[i];
-        talon_ctrl_pubs.emplace_back(
-            parent.create_publisher<custom_types::msg::TalonCtrl>(
-                motor + "_ctrl", 10));
-        talon_info_subs.emplace_back(
-            parent.create_subscription<custom_types::msg::TalonInfo>(
-                motor + "_info", 10,
-                [this, i](const custom_types::msg::TalonInfo & info)
-                { this->robot_state[i] = info; }));
-    }
+std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+RobotTeleopInterface::talon_ctrl_pub(rclcpp::Node & parent,
+                                     const std::string & name)
+{
+    return parent.create_publisher<custom_types::msg::TalonCtrl>(name, 10);
 }
 
 void RobotTeleopInterface::update_motors()
 {
-    auto motor_settings =
+    MotorSettings motor_settings =
         this->teleop_state.update(this->robot_state, this->joy);
-    for(size_t i = 0; i < motor_settings.size(); i++)
-    {
-        talon_ctrl_pubs[i]->publish(motor_settings[i]);
-    }
+    right_track_ctrl->publish(motor_settings.track_right);
+    left_track_ctrl->publish(motor_settings.track_left);
+    trencher_ctrl->publish(motor_settings.trencher);
+    hopper_belt_ctrl->publish(motor_settings.hopper_belt);
+    hopper_actuator_ctrl->publish(motor_settings.hopper_actuator);
 }
 
 Application::Application(int argc, char ** argv)

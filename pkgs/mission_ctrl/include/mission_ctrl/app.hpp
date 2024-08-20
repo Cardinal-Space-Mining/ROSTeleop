@@ -31,16 +31,40 @@ public:
     RobotTeleopInterface(rclcpp::Node & parent);
 
 private:
-    RobotState robot_state;
     std::shared_ptr<rclcpp::Subscription<sensor_msgs::msg::Joy>> joy_sub;
+
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+        right_track_ctrl;
+    std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>
+        right_track_info;
+
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+        left_track_ctrl;
+    std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>
+        left_track_info;
+
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+        trencher_ctrl;
+    std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>
+        trencher_info;
+
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+        hopper_belt_ctrl;
+    std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>
+        hopper_belt_info;
+
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+        hopper_actuator_ctrl;
+    std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>
+        hopper_actuator_info;
+
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>> talon_ctrl_pub(rclcpp::Node& parent, const std::string& name);
+
+private:
     sensor_msgs::msg::Joy joy;
-    std::vector<
-        std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>>
-        talon_ctrl_pubs;
-    std::vector<
-        std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>>
-        talon_info_subs;
-    static const std::array<std::string, 5> motors;
+    RobotState robot_state;
+
+private:
     rclcpp::TimerBase::SharedPtr teleop_update_timer;
     TeleopStateMachine teleop_state;
 };
