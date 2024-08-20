@@ -14,3 +14,7 @@ Using SDL2 for gamepad input. Using IMGUI for options and stuff
 
 # Requirements 
 Build Dependency: [patchelf](https://github.com/NixOS/patchelf) (`sudo apt install patchelf`)
+
+# Todo 
+1. Use ROS2 Joy Package
+2. Implement State machine that takes Joy Messages and outputs motor commands

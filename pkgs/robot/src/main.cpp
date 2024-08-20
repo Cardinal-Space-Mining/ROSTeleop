@@ -21,34 +21,76 @@ using namespace ctre::phoenix::platform;
 using namespace ctre::phoenix::motorcontrol;
 using namespace ctre::phoenix::motorcontrol::can;
 
+namespace
+{
+const char * to_string(ctre::phoenix::motorcontrol::ControlMode mode)
+{
+    using namespace ctre::phoenix::motorcontrol;
+    switch(mode)
+    {
+    case ControlMode::Position: return "Position";
+
+    case ControlMode::Velocity: return "Velocity";
+
+    case ControlMode::Current: return "Current";
+
+    case ControlMode::Follower: return "Follower";
+
+    case ControlMode::MotionProfile: return "MotionProfile";
+
+    case ControlMode::MotionMagic: return "MotionMagic";
+
+    case ControlMode::MotionProfileArc: return "MotionProfileArc";
+
+    case ControlMode::MusicTone: return "MusicTone";
+    case ControlMode::Disabled: return "Disabled";
+    case ControlMode::PercentOutput: return "PercentOutput";
+    }
+    return "";
+}
+} // namespace
+
+using namespace std::chrono_literals;
+
 class Robot : public rclcpp::Node
 {
 public:
     template <size_t V>
-    Robot(std::span<const std::pair<const char *, int>, V> motors, const std::string& interface)
+    Robot(std::span<const std::pair<const char *, int>, V> motors,
+          const std::string & interface)
     : rclcpp::Node("robot")
+    , timer(this->create_wall_timer(
+          1000ms,
+          []() { ctre::phoenix::unmanaged::Unmanaged::FeedEnable(2000); }))
     {
         for(const auto & motor : motors)
         {
-            auto & motor_ref =
-                m_motors.emplace_back(std::make_unique<TalonSRX>(motor.second, interface));
-            m_motor_subs.emplace_back(this->create_subscription<
-                                      custom_types::msg::TalonCtrl>(
-                motor.first, 10,
-                [&motor_ref](const custom_types::msg::TalonCtrl & msg)
-                {
-                    motor_ref->Set(
-                        static_cast<ctre::phoenix::motorcontrol::ControlMode>(
-                            msg.mode),
-                        msg.value);
-                }));
+            m_motors.emplace_back(
+                std::make_unique<TalonSRX>(motor.second, interface));
         }
 
-        for (auto& motor : m_motors)
+        for(std::size_t i = 0; i < motors.size(); i++)
         {
-            motor->Set(ctre::phoenix::motorcontrol::ControlMode::PercentOutput, 1.0);
+            auto motor_info = motors[i];
+            std::unique_ptr<TalonSRX> & motor_ref = m_motors[i];
+            m_motor_subs.emplace_back(
+                this->create_subscription<custom_types::msg::TalonCtrl>(
+                    motors[i].first, 10,
+                    [&motor_ref, this,
+                     motor_info](const custom_types::msg::TalonCtrl & msg)
+                    {
+                        auto ctrl_mode = static_cast<
+                            ctre::phoenix::motorcontrol::ControlMode>(msg.mode);
+                        RCLCPP_DEBUG_THROTTLE(
+                            this->get_logger(), *this->get_clock(), 1000,
+                            "Configured Motor %s: {%s,%f}", motor_info.first,
+                            to_string(ctrl_mode), msg.value);
+
+                        motor_ref->Set(ctrl_mode, msg.value);
+                    }));
         }
-        
+
+        RCLCPP_DEBUG(this->get_logger(), "Initialized Node");
     }
 
 private:
@@ -56,6 +98,7 @@ private:
     std::vector<
         std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonCtrl>>>
         m_motor_subs;
+    rclcpp::TimerBase::SharedPtr timer;
 };
 
 int main(int argc, char ** argv)
@@ -77,7 +120,6 @@ int main(int argc, char ** argv)
     auto node = std::make_shared<Robot>(
         std::span{std::begin(motors), std::end(motors)}, interface);
 
-    // Run the node
     rclcpp::spin(node);
     rclcpp::shutdown();
     return EXIT_SUCCESS;

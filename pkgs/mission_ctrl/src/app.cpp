@@ -5,7 +5,8 @@ Application::Application(int argc, char ** argv)
 , window(SDL_CreateWindow("Basic C++ SDL project", SDL_WINDOWPOS_UNDEFINED,
                           SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT,
                           SDL_WINDOW_SHOWN))
-, renderer(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED))
+, renderer(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED)),
+track_right_pub(create_publisher<custom_types::msg::TalonCtrl>("track_right", 10))
 {
     (void)argc;
     (void)argv;
@@ -39,6 +40,13 @@ void Application::handle_event(SDL_Event & e)
     }
 }
 
+void Application::update_motors(){
+    custom_types::msg::TalonCtrl msg;
+    msg.mode = msg.PERCENT_OUTPUT;
+    msg.value = this->track_right_velo;
+    this->track_right_pub->publish(msg);
+}
+
 void Application::update()
 {
     SDL_Event e;
@@ -61,6 +69,8 @@ void Application::update()
                                  // append into it.
         ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
                     1000.0f / io.Framerate, io.Framerate);
+
+        ImGui::SliderFloat("RightTrack", &this->track_right_velo, -1, 1);
         ImGui::End();
     }
 
@@ -79,4 +89,6 @@ void Application::update()
 
     // Update screen
     SDL_RenderPresent(renderer.get());
+
+    this->update_motors();
 }
