@@ -143,7 +143,7 @@ TeleopStateMachine::normal_state(const RobotState & state,
         {
             bot.hopper_actuator.mode = bot.hopper_actuator.PERCENT_OUTPUT;
             bot.hopper_actuator.value =
-                apply_deadband(ctrl.axes[LogitechMapping::Axes::RIGHTY],
+                -1.0 * apply_deadband(ctrl.axes[LogitechMapping::Axes::RIGHTY],
                                RobotConstants::GENERIC_DEADZONE_SCALAR);
         }
 

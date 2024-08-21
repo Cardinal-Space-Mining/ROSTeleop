@@ -5,13 +5,13 @@ RobotTeleopInterface::RobotTeleopInterface(rclcpp::Node & parent)
       "joy", 10,
       [this](const sensor_msgs::msg::Joy & joy) { this->joy = joy; }))
 
-, right_track_ctrl(talon_ctrl_pub(parent, "right_track_ctrl"))
+, right_track_ctrl(talon_ctrl_pub(parent, "track_right_ctrl"))
 , right_track_info(parent.create_subscription<custom_types::msg::TalonInfo>(
-      "right_track_info", 10, [this](const custom_types::msg::TalonInfo & msg)
+      "track_right_info", 10, [this](const custom_types::msg::TalonInfo & msg)
       { this->robot_state.track_right = msg; }))
-, left_track_ctrl(talon_ctrl_pub(parent, "left_track_ctrl"))
+, left_track_ctrl(talon_ctrl_pub(parent, "track_left_ctrl"))
 , left_track_info(parent.create_subscription<custom_types::msg::TalonInfo>(
-      "left_track_info", 10, [this](const custom_types::msg::TalonInfo & msg)
+      "track_left_info", 10, [this](const custom_types::msg::TalonInfo & msg)
       { this->robot_state.track_left = msg; }))
 , trencher_ctrl(talon_ctrl_pub(parent, "trencher_ctrl"))
 , trencher_info(parent.create_subscription<custom_types::msg::TalonInfo>(

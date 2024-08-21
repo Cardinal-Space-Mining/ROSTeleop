@@ -64,7 +64,7 @@ static constexpr double
 
     
     //Compile time teleometry toggle
-    constexpr static bool TELEOMETRY = true;
+    constexpr static bool TELEOMETRY = false;
 
 
 } // namespace RobotConstants

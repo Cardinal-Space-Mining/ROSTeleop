@@ -28,7 +28,7 @@ using namespace std::chrono_literals;
 struct MotorInfo
 {
 
-    const char * motor_name;
+    std::string motor_name;
     int motor_id;
     enum class MotorType
     {
@@ -38,77 +38,28 @@ struct MotorInfo
     MotorType type;
 };
 
-class InstantiatedMotor
-{
-private:
-    static std::unique_ptr<BaseTalon>
-    create_motor(const MotorInfo & motor_info, const std::string & interface)
-    {
-        switch(motor_info.type)
-        {
-        case MotorInfo::MotorType::TalonSRX:
-            return std::make_unique<TalonSRX>(motor_info.motor_id, interface);
-        case MotorInfo::MotorType::TalonFX:
-            return std::make_unique<TalonFX>(motor_info.motor_id, interface);
-
-        default: throw std::runtime_error("Unacounted Path");
-        }
-    }
-
-    void on_msg(const custom_types::msg::TalonCtrl & msg)
-    {
-        m_motor->Set(
-            static_cast<ctre::phoenix::motorcontrol::ControlMode>(msg.mode),
-            msg.value);
-    }
-
-public:
-    custom_types::msg::TalonInfo get_info()
-    {
-        custom_types::msg::TalonInfo info;
-
-        info.temperature = m_motor->GetTemperature();
-        info.bus_voltage = m_motor->GetBusVoltage();
-
-        info.output_percent = m_motor->GetMotorOutputPercent();
-        info.output_voltage = m_motor->GetMotorOutputVoltage();
-        info.output_current = m_motor->GetOutputCurrent();
-
-        info.position = m_motor->GetSelectedSensorPosition();
-        info.velocity = m_motor->GetSelectedSensorVelocity();
-
-        return info;
-    }
-
-public:
-    InstantiatedMotor(const MotorInfo & motor_info,
-                      const std::string & interface, rclcpp::Node & parent)
-    : m_motor(InstantiatedMotor::create_motor(motor_info, interface))
-    , m_ctrl_sub(parent.create_subscription<custom_types::msg::TalonCtrl>(
-          std::string{motor_info.motor_name} + "_ctrl", 10,
-          std::bind(&InstantiatedMotor::on_msg, this, std::placeholders::_1)))
-    , m_info_pub(parent.create_publisher<custom_types::msg::TalonInfo>(
-          std::string{motor_info.motor_name} + "_info", 10))
-
-    {
-    }
-
-public:
-    std::unique_ptr<BaseTalon> m_motor;
-    std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonCtrl>>
-        m_ctrl_sub;
-    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonInfo>> m_info_pub;
-};
-
 class Robot : public rclcpp::Node
 {
 private:
     void info_periodic()
     {
-        for(auto & motor : m_motors)
+        for(size_t i = 0; i < m_motors.size(); i++)
         {
-            auto info = motor.get_info();
-            motor.m_info_pub->publish(info);
+
+            custom_types::msg::TalonInfo info;
+            auto& motor = m_motors[i];
+
+            info.temperature = motor->GetTemperature();
+            info.bus_voltage = motor->GetBusVoltage();
+
+            info.output_percent = motor->GetMotorOutputPercent();
+            info.output_voltage = motor->GetMotorOutputVoltage();
+            info.output_current = motor->GetOutputCurrent();
+
+            info.position = motor->GetSelectedSensorPosition();
+            info.velocity = motor->GetSelectedSensorVelocity();
+
+            this->talon_info_pubs[i]->publish(info);
         }
     }
 
@@ -118,12 +69,14 @@ public:
     , heartbeat_sub(this->create_subscription<std_msgs::msg::Int32>(
           "heartbeat", 10, [](const std_msgs::msg::Int32 & msg)
           { ctre::phoenix::unmanaged::Unmanaged::FeedEnable(msg.data); }))
-    , info_timer(this->create_wall_timer(
-          100ms, std::bind(&Robot::info_periodic, this)))
+    , info_timer(
+          this->create_wall_timer(100ms, [this]() { this->info_periodic(); }))
     {
+        RCLCPP_DEBUG(this->get_logger(), "Starting Node INIT");
+
 
         // Create the node
-        static constexpr MotorInfo motors[] = {
+        static const MotorInfo motors[] = {
             {"track_right", 0, MotorInfo::MotorType::TalonFX},
             {"track_left", 1, MotorInfo::MotorType::TalonFX},
             {"trencher", 2, MotorInfo::MotorType::TalonFX},
@@ -132,7 +85,36 @@ public:
 
         for(const auto & motor : motors)
         {
-            m_motors.emplace_back(motor, "can0", *this);
+            std::unique_ptr<BaseTalon> talon =
+                motor.type == MotorInfo::MotorType::TalonFX
+                    ? static_cast<std::unique_ptr<BaseTalon>>(
+                          std::make_unique<TalonFX>(motor.motor_id,
+                                                    m_interface))
+                    : static_cast<std::unique_ptr<BaseTalon>>(
+                          std::make_unique<TalonSRX>(motor.motor_id,
+                                                     m_interface));
+            m_motors.emplace_back(std::move(talon));
+        }
+
+        // Create the pubs and subs AFTER all the motors are created so m_motors
+        // does not reallocate and invalidate all the Callbacks that hold
+        //  references to the motors
+        for(std::size_t i = 0; i < std::size(motors); i++)
+        {
+            auto & motor = motors[i];
+            auto pub = this->create_publisher<custom_types::msg::TalonInfo>(
+                motor.motor_name + "_info", 10);
+            auto sub = this->create_subscription<custom_types::msg::TalonCtrl>(
+                motor.motor_name + "_ctrl", 10,
+                [this, i](const custom_types::msg::TalonCtrl & msg)
+                {
+                    this->m_motors[i]->Set(
+                        static_cast<ctre::phoenix::motorcontrol::ControlMode>(
+                            msg.mode),
+                        msg.value);
+                });
+            talon_ctrl_subs.emplace_back(sub);
+            talon_info_pubs.emplace_back(pub);
         }
 
         RCLCPP_DEBUG(this->get_logger(), "Initialized Node");
@@ -142,7 +124,15 @@ private:
     const std::string m_interface = "can0";
 
 private:
-    std::vector<InstantiatedMotor> m_motors;
+    std::vector<std::unique_ptr<BaseTalon>> m_motors;
+    std::vector<
+        std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonCtrl>>>
+        talon_ctrl_subs;
+    std::vector<
+        std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonInfo>>>
+        talon_info_pubs;
+
+private:
     std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Int32>> heartbeat_sub;
     rclcpp::TimerBase::SharedPtr info_timer;
 
@@ -151,12 +141,24 @@ private:
 
 int main(int argc, char ** argv)
 {
+    ctre::phoenix::unmanaged::Unmanaged::LoadPhoenix();
+
+    std::cout << "Loaded Pheonix" << std::endl;
+
     // Init ROS2 for logging capabilities
     rclcpp::init(argc, argv);
 
+    std::cout << "Loaded rclcpp" << std::endl;
+
     auto node = std::make_shared<Robot>();
 
+    std::cout << "Loaded Bot Node" << std::endl;
+
     rclcpp::spin(node);
+
+    std::cout << "Spun Node" << std::endl;
     rclcpp::shutdown();
+
+    std::cout << "Loaded Done" << std::endl;
     return EXIT_SUCCESS;
 }
