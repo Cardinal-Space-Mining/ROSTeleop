@@ -29,10 +29,20 @@ constexpr int L_TRIGGER = 2;
 
 constexpr int RIGHTX = 3;
 constexpr int RIGHTY = 4;
-constexpr int TRIGGERRIGHT = 5;
+constexpr int R_TRIGGER = 5;
 
 constexpr int DPAD_R_L = 6;
 constexpr int DPAD_U_D = 7;
+
+namespace DPAD_K
+{
+
+constexpr double DPAD_DOWN = -1.0;
+constexpr double DPAD_UP = 1.0;
+
+constexpr double DPAD_RIGHT = -1.0;
+constexpr double DPAD_LEFT = 1.0;
+} // namespace DPAD_K
 
 constexpr int NUM_AXES = 8;
 

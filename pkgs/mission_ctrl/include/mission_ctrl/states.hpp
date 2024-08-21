@@ -2,6 +2,7 @@
 #define MISSION_CTRL_STATES_HPP_6_27_2024
 
 #include <variant>
+#include <limits>
 
 #include "sensor_msgs/msg/joy.hpp"
 
@@ -32,7 +33,8 @@ public:
     TeleopStateMachine()
     : state_info{NormalInfo()}
     {
-        set_state(State::Normal);
+        RobotState state;
+        set_state(State::Normal, state);
     }
 
 public:
@@ -57,11 +59,13 @@ private:
 
     struct NormalInfo
     {
-        Lifecycle lifecycle = Lifecycle::Start;
+        double speed_scalar = 1.0;
     };
     struct OffloadInfo
     {
         Lifecycle lifecycle = Lifecycle::Start;
+        double start_pos = std::numeric_limits<double>::min();
+        double track_scalar = 1.0;
     };
 
     struct TrenchInfo
@@ -77,7 +81,7 @@ private:
     };
 
 private:
-    void set_state(State state);
+    void set_state(State state, const RobotState & robot);
 
     State current_state;
     std::variant<NormalInfo, OffloadInfo, TrenchInfo> state_info;
