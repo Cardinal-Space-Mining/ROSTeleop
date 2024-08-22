@@ -25,42 +25,60 @@ using namespace ctre::phoenix::motorcontrol::can;
 
 using namespace std::chrono_literals;
 
-struct MotorInfo
+struct Gains
 {
+    double P, I, D, F;
 
-    std::string motor_name;
-    int motor_id;
-    enum class MotorType
+    void apply_gains(BaseTalon & talon) const
     {
-        TalonFX,
-        TalonSRX
-    };
-    MotorType type;
+        talon.Config_kD(0, P);
+        talon.Config_kP(0, I);
+        talon.Config_kI(0, D);
+        talon.Config_kF(0, F);
+    }
 };
+
+namespace constants
+{
+static const std::string INTERFACE = "can0";
+static constexpr Gains DEFAULT_GAINS{0.0, 0.0, 0.0, 0.2};
+} // namespace constants
+
+void apply_msg(BaseTalon & motor, const custom_types::msg::TalonCtrl & msg)
+{
+    printf("Applying: {Mode: %d, Value: %f}", msg.mode, msg.value );
+    motor.Set(static_cast<ctre::phoenix::motorcontrol::ControlMode>(msg.mode),
+              msg.value);
+}
+
+custom_types::msg::TalonInfo get_info(BaseTalon & talon)
+{
+    custom_types::msg::TalonInfo info;
+    info.temperature = talon.GetTemperature();
+    info.bus_voltage = talon.GetBusVoltage();
+    info.output_percent = talon.GetMotorOutputPercent();
+    info.output_voltage = talon.GetMotorOutputVoltage();
+    info.output_current = talon.GetOutputCurrent();
+    info.position = talon.GetSelectedSensorPosition();
+    info.velocity = talon.GetSelectedSensorVelocity();
+    return info;
+}
 
 class Robot : public rclcpp::Node
 {
 private:
     void info_periodic()
     {
-        for(size_t i = 0; i < m_motors.size(); i++)
-        {
+        track_right_info->publish(get_info(track_right));
+        track_left_info->publish(get_info(track_left));
+        trencher_info->publish(get_info(trencher));
+        hopper_actuator_info->publish(get_info(hopper_actuator));
+        hopper_belt_info->publish(get_info(hopper_belt));
+    }
 
-            custom_types::msg::TalonInfo info;
-            auto& motor = m_motors[i];
-
-            info.temperature = motor->GetTemperature();
-            info.bus_voltage = motor->GetBusVoltage();
-
-            info.output_percent = motor->GetMotorOutputPercent();
-            info.output_voltage = motor->GetMotorOutputVoltage();
-            info.output_current = motor->GetOutputCurrent();
-
-            info.position = motor->GetSelectedSensorPosition();
-            info.velocity = motor->GetSelectedSensorVelocity();
-
-            this->talon_info_pubs[i]->publish(info);
-        }
+    auto create_motor_info_pub(std::string name)
+    {
+        return this->create_publisher<custom_types::msg::TalonInfo>(name, 10);
     }
 
 public:
@@ -71,70 +89,80 @@ public:
           { ctre::phoenix::unmanaged::Unmanaged::FeedEnable(msg.data); }))
     , info_timer(
           this->create_wall_timer(100ms, [this]() { this->info_periodic(); }))
+    , track_right_ctrl(this->create_subscription<custom_types::msg::TalonCtrl>(
+          "track_right_ctrl", 10,
+          [this](const custom_types::msg::TalonCtrl & msg)
+          { apply_msg(this->track_right, msg); }))
+    , track_right_info(create_motor_info_pub("track_right_info"))
+    , track_left_ctrl(this->create_subscription<custom_types::msg::TalonCtrl>(
+          "track_left_ctrl", 10,
+          [this](const custom_types::msg::TalonCtrl & msg)
+          { apply_msg(this->track_left, msg); }))
+    , track_left_info(create_motor_info_pub("track_left_info"))
+    , trencher_ctrl(this->create_subscription<custom_types::msg::TalonCtrl>(
+          "trencher_ctrl", 10, [this](const custom_types::msg::TalonCtrl & msg)
+          { apply_msg(this->trencher, msg); }))
+    ,
+
+    trencher_info(create_motor_info_pub("trencher_info"))
+    , hopper_belt_ctrl(this->create_subscription<custom_types::msg::TalonCtrl>(
+          "hopper_belt_ctrl", 10,
+          [this](const custom_types::msg::TalonCtrl & msg)
+          { apply_msg(this->hopper_belt, msg); }))
+    , hopper_belt_info(create_motor_info_pub("hopper_belt_info"))
+    , hopper_actuator_ctrl(
+          this->create_subscription<custom_types::msg::TalonCtrl>(
+              "hopper_actuator_ctrl", 10,
+              [this](const custom_types::msg::TalonCtrl & msg)
+              { apply_msg(this->hopper_actuator, msg); }))
+    , hopper_actuator_info(create_motor_info_pub("hopper_actuator_info"))
     {
         RCLCPP_DEBUG(this->get_logger(), "Starting Node INIT");
 
+        // TODO
+        std::array<std::reference_wrapper<BaseTalon>, 5> motors = {
+            {track_right, track_left, trencher, hopper_belt, hopper_actuator}};
 
-        // Create the node
-        static const MotorInfo motors[] = {
-            {"track_right", 0, MotorInfo::MotorType::TalonFX},
-            {"track_left", 1, MotorInfo::MotorType::TalonFX},
-            {"trencher", 2, MotorInfo::MotorType::TalonFX},
-            {"hopper_belt", 3, MotorInfo::MotorType::TalonFX},
-            {"hopper_actuator", 4, MotorInfo::MotorType::TalonSRX}};
-
-        for(const auto & motor : motors)
+        for(auto & motor : motors)
         {
-            std::unique_ptr<BaseTalon> talon =
-                motor.type == MotorInfo::MotorType::TalonFX
-                    ? static_cast<std::unique_ptr<BaseTalon>>(
-                          std::make_unique<TalonFX>(motor.motor_id,
-                                                    m_interface))
-                    : static_cast<std::unique_ptr<BaseTalon>>(
-                          std::make_unique<TalonSRX>(motor.motor_id,
-                                                     m_interface));
-            m_motors.emplace_back(std::move(talon));
-        }
-
-        // Create the pubs and subs AFTER all the motors are created so m_motors
-        // does not reallocate and invalidate all the Callbacks that hold
-        //  references to the motors
-        for(std::size_t i = 0; i < std::size(motors); i++)
-        {
-            auto & motor = motors[i];
-            auto pub = this->create_publisher<custom_types::msg::TalonInfo>(
-                motor.motor_name + "_info", 10);
-            auto sub = this->create_subscription<custom_types::msg::TalonCtrl>(
-                motor.motor_name + "_ctrl", 10,
-                [this, i](const custom_types::msg::TalonCtrl & msg)
-                {
-                    this->m_motors[i]->Set(
-                        static_cast<ctre::phoenix::motorcontrol::ControlMode>(
-                            msg.mode),
-                        msg.value);
-                });
-            talon_ctrl_subs.emplace_back(sub);
-            talon_info_pubs.emplace_back(pub);
+            constants::DEFAULT_GAINS.apply_gains(motor);
         }
 
         RCLCPP_DEBUG(this->get_logger(), "Initialized Node");
     }
 
 private:
-    const std::string m_interface = "can0";
-
-private:
-    std::vector<std::unique_ptr<BaseTalon>> m_motors;
-    std::vector<
-        std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonCtrl>>>
-        talon_ctrl_subs;
-    std::vector<
-        std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonInfo>>>
-        talon_info_pubs;
-
-private:
     std::shared_ptr<rclcpp::Subscription<std_msgs::msg::Int32>> heartbeat_sub;
     rclcpp::TimerBase::SharedPtr info_timer;
+
+private:
+    TalonFX track_right{0, constants::INTERFACE};
+    TalonFX track_left{1, constants::INTERFACE};
+    TalonFX trencher{2, constants::INTERFACE};
+    TalonFX hopper_belt{3, constants::INTERFACE};
+    TalonSRX hopper_actuator{4, constants::INTERFACE};
+
+private:
+    using TalonCtrlSub =
+        rclcpp::Subscription<custom_types::msg::TalonCtrl>::SharedPtr;
+    using TalonInfoPub =
+        rclcpp::Publisher<custom_types::msg::TalonInfo>::SharedPtr;
+
+    TalonCtrlSub track_right_ctrl;
+    TalonInfoPub track_right_info;
+
+    TalonCtrlSub track_left_ctrl;
+    TalonInfoPub track_left_info;
+
+    TalonCtrlSub trencher_ctrl;
+    TalonInfoPub trencher_info;
+
+    TalonCtrlSub hopper_belt_ctrl;
+    TalonInfoPub hopper_belt_info;
+
+    TalonCtrlSub hopper_actuator_ctrl;
+    rclcpp::Publisher<custom_types::msg::TalonInfo>::SharedPtr
+        hopper_actuator_info;
 
     // Set the can interface for pheonix5
 };

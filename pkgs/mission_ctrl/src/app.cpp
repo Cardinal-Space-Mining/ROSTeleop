@@ -29,8 +29,8 @@ RobotTeleopInterface::RobotTeleopInterface(rclcpp::Node & parent)
       [this](const custom_types::msg::TalonInfo & msg)
       { this->robot_state.hopper_actuator = msg; }))
 
-, teleop_update_timer(parent.create_wall_timer(
-      100ms, [this](){this->update_motors();}))
+, teleop_update_timer(
+      parent.create_wall_timer(100ms, [this]() { this->update_motors(); }))
 
 {
 }
@@ -59,8 +59,7 @@ Application::Application(int argc, char ** argv)
                           SDL_WINDOWPOS_UNDEFINED, WIDTH, HEIGHT,
                           SDL_WINDOW_SHOWN))
 , renderer(SDL_CreateRenderer(window.get(), -1, SDL_RENDERER_ACCELERATED))
-, track_right_pub(
-      create_publisher<custom_types::msg::TalonCtrl>("track_right", 10))
+
 , heartbeat(create_publisher<std_msgs::msg::Int32>("heartbeat", 10))
 , heartbeat_timer(this->create_wall_timer(BEAT_TIME,
                                           [this]()
@@ -109,14 +108,6 @@ void Application::handle_event(SDL_Event & e)
     }
 }
 
-void Application::update_motors()
-{
-    custom_types::msg::TalonCtrl msg;
-    msg.mode = msg.PERCENT_OUTPUT;
-    msg.value = this->track_right_velo;
-    this->track_right_pub->publish(msg);
-}
-
 void Application::update()
 {
     SDL_Event e;
@@ -142,7 +133,6 @@ void Application::update()
 
         ImGui::Checkbox("Enable Robot", &this->bot_enabled);
 
-        ImGui::SliderFloat("RightTrack", &this->track_right_velo, -1, 1);
         ImGui::End();
     }
 
@@ -162,5 +152,4 @@ void Application::update()
     // Update screen
     SDL_RenderPresent(renderer.get());
 
-    this->update_motors();
 }

@@ -58,7 +58,8 @@ private:
     std::shared_ptr<rclcpp::Subscription<custom_types::msg::TalonInfo>>
         hopper_actuator_info;
 
-    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>> talon_ctrl_pub(rclcpp::Node& parent, const std::string& name);
+    std::shared_ptr<rclcpp::Publisher<custom_types::msg::TalonCtrl>>
+    talon_ctrl_pub(rclcpp::Node & parent, const std::string & name);
 
 private:
     sensor_msgs::msg::Joy joy;
@@ -78,9 +79,7 @@ public:
 
 private:
     void handle_event(SDL_Event & e);
-
-    void update_motors();
-
+    
 private:
     const int WIDTH = 1028;
     const int HEIGHT = 940;
@@ -88,7 +87,6 @@ private:
     const std::chrono::milliseconds frame_time = std::chrono::milliseconds(16);
 
 private:
-    float track_right_velo = 0;
     bool bot_enabled = false;
 
     static constexpr auto ENABLE_TIME = 250ms;
@@ -101,14 +99,11 @@ private:
     ImGuiIO & io = ImGui::GetIO();
 
 private:
-    rclcpp::Publisher<custom_types::msg::TalonCtrl>::SharedPtr track_right_pub;
-    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr heartbeat;
-
-private:
     rclcpp::TimerBase::SharedPtr frame_timer;
     rclcpp::TimerBase::SharedPtr heartbeat_timer;
 
 private:
+    rclcpp::Publisher<std_msgs::msg::Int32>::SharedPtr heartbeat;
     RobotTeleopInterface teleop_interface;
 };
 

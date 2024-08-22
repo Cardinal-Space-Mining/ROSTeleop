@@ -130,13 +130,15 @@ TeleopStateMachine::normal_state(const RobotState & state,
                 -ctrl.axes[LogitechMapping::Axes::LEFTX],
                 ctrl.axes[LogitechMapping::Axes::LEFTY],
                 RobotConstants::DRIVING_MAGNITUDE_DEADZONE_SCALAR);
-            bot.track_right.mode = bot.track_right.VELOCITY;
+            bot.track_right.mode = bot.track_right.PERCENT_OUTPUT;
             bot.track_right.value =
-                vars[0] * state.speed_scalar * RobotConstants::TRACKS_MAX_VELO;
+                vars[0] *
+                state.speed_scalar; //* RobotConstants::TRACKS_MAX_VELO;
 
-            bot.track_left.mode = bot.track_right.VELOCITY;
+            bot.track_left.mode = bot.track_right.PERCENT_OUTPUT;
             bot.track_left.value =
-                vars[1] * state.speed_scalar * RobotConstants::TRACKS_MAX_VELO;
+                vars[1] *
+                state.speed_scalar; //* RobotConstants::TRACKS_MAX_VELO;
         }
 
         // Hopper Up and Down
@@ -144,7 +146,7 @@ TeleopStateMachine::normal_state(const RobotState & state,
             bot.hopper_actuator.mode = bot.hopper_actuator.PERCENT_OUTPUT;
             bot.hopper_actuator.value =
                 -1.0 * apply_deadband(ctrl.axes[LogitechMapping::Axes::RIGHTY],
-                               RobotConstants::GENERIC_DEADZONE_SCALAR);
+                                      RobotConstants::GENERIC_DEADZONE_SCALAR);
         }
 
         // Hopper Belt
@@ -156,9 +158,9 @@ TeleopStateMachine::normal_state(const RobotState & state,
                 trigger_percentage *= -1.0;
             }
 
-            bot.hopper_belt.mode = bot.hopper_belt.VELOCITY;
+            bot.hopper_belt.mode = bot.hopper_belt.PERCENT_OUTPUT;
             bot.hopper_belt.value =
-                trigger_percentage * RobotConstants::HOPPER_BELT_MAX_VELO;
+                trigger_percentage; //* RobotConstants::HOPPER_BELT_MAX_VELO;
         }
 
         // Trencher Speed
@@ -171,9 +173,9 @@ TeleopStateMachine::normal_state(const RobotState & state,
                 trigger_percentage *= -1.0;
             }
 
-            bot.trencher.mode = bot.trencher.VELOCITY;
+            bot.trencher.mode = bot.trencher.PERCENT_OUTPUT;
             bot.trencher.value =
-                trigger_percentage * RobotConstants::TRENCHER_MAX_VELO;
+                trigger_percentage; //* RobotConstants::TRENCHER_MAX_VELO;
         }
         return bot;
     }
