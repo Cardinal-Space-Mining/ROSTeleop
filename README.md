@@ -13,7 +13,8 @@ Using SDL2 for gamepad input. Using IMGUI for options and stuff
 `colcon build --executor parallel --cmake-args=-DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON`
 
 # Requirements 
-Build Dependency: [patchelf](https://github.com/NixOS/patchelf) (`sudo apt install patchelf`)
+* Build Dependency: [patchelf](https://github.com/NixOS/patchelf) (`sudo apt install patchelf`)
+* Run Dependency: [pheonix6](https://v6.docs.ctr-electronics.com/en/latest/docs/installation/installation-nonfrc.html)
 
 # Errata:
 * Pheonix Tuner X works with Pheonix 5. 

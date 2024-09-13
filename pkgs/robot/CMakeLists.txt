@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(custom_types REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(phoenix6 REQUIRED)
 
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -18,8 +19,8 @@ find_package(std_msgs REQUIRED)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 SET(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
-add_executable(main src/main.cpp)
-ament_target_dependencies(main rclcpp std_msgs custom_types)
+add_executable(main src/main.cpp src/TalonWrapperImpl.cpp)
+ament_target_dependencies(main rclcpp std_msgs custom_types phoenix6)
 target_include_directories(main PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/libs/phoenix5/include>

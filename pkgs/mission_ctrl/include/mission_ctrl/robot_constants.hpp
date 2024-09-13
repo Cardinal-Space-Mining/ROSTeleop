@@ -11,15 +11,11 @@ namespace RobotConstants
 {
 static constexpr long
     // motor physical speed targets
-    TRENCHER_MAX_VELO =
-        falcon_tps_to_pheonix_5_velo(80), // maximum mining speed
-    TRENCHER_NOMINAL_MINING_VELO =
-        falcon_tps_to_pheonix_5_velo(80), // base trenching speed
-    HOPPER_BELT_MAX_VELO = falcon_tps_to_pheonix_5_velo(45),
-    HOPPER_BELT_MAX_MINING_VELO = falcon_tps_to_pheonix_5_velo(10),
-    TRACKS_MAX_VELO = falcon_tps_to_pheonix_5_velo(125),
-    TRACKS_MINING_VELO = falcon_tps_to_pheonix_5_velo(8),
-    TRACKS_MAX_ADDITIONAL_MINING_VEL = falcon_tps_to_pheonix_5_velo(6);
+    TRENCHER_MAX_VELO = 80,            // maximum mining speed
+    TRENCHER_NOMINAL_MINING_VELO = 80, // base trenching speed
+    HOPPER_BELT_MAX_VELO = 45, HOPPER_BELT_MAX_MINING_VELO = 10,
+    TRACKS_MAX_VELO = 125, TRACKS_MINING_VELO = 8,
+    TRACKS_MAX_ADDITIONAL_MINING_VEL = 6;
 static constexpr long TRACKS_OFFLOAD_VELO = TRACKS_MAX_VELO * 0.25;
 
 // static constexpr auto MOTOR_SETPOINT_ACC = 5_tr_per_s_sq;
@@ -56,16 +52,15 @@ static constexpr double
     // auto belt duty cycle
     HOPPER_BELT_TIME_ON_SECONDS = 1.0, HOPPER_BELT_TIME_OFF_SECONDS = 2.5;
 
+// TODO
+constexpr static double HOPPER_RAISED = 0.0, HOPPER_LEVEL = 0.0,
+                        HOPPER_DOWN = 0.0, HOPPER_EPSILON = 100;
+constexpr static double OFFLOAD_HOPPER_DELTA = 0.0,
+                        OFFLOAD_HOPPER_EPSILON = 100;
+constexpr static double TRENCH_DOWN = 0.0, TRENCH_EPSILON = 0.0;
 
-    // TODO
-    constexpr static double HOPPER_RAISED = 0.0, HOPPER_LEVEL = 0.0, HOPPER_DOWN = 0.0, HOPPER_EPSILON = 100;
-    constexpr static double OFFLOAD_HOPPER_DELTA = 0.0, OFFLOAD_HOPPER_EPSILON = 100;
-    constexpr static double TRENCH_DOWN = 0.0, TRENCH_EPSILON = 0.0;
-
-    
-    //Compile time teleometry toggle
-    constexpr static bool TELEOMETRY = false;
-
+// Compile time teleometry toggle
+constexpr static bool TELEOMETRY = false;
 
 } // namespace RobotConstants
 
