@@ -11,6 +11,17 @@ find_package(rclcpp REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(custom_types REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(robot_control_base REQUIRED)
+
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(custom_types REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(message_filters REQUIRED)
+
 
 # 1. Look for a SDL2 package, 2. look for the SDL2 component and 3. fail if none can be found
 find_package(SDL2 REQUIRED CONFIG REQUIRED COMPONENTS SDL2)
@@ -31,7 +42,7 @@ set(IMGUI_SRC_FILES
 
 add_executable(main ${IMGUI_SRC_FILES} src/main.cpp src/sdl_utils.cpp src/app.cpp src/states.cpp)
 
-ament_target_dependencies(main rclcpp sensor_msgs std_msgs custom_types)
+ament_target_dependencies(main rclcpp sensor_msgs std_msgs custom_types robot_control_base)
 
 target_include_directories(main PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
